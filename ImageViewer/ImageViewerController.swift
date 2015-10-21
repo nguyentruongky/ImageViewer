@@ -18,44 +18,25 @@ class ImageViewerController: UIViewController, UIScrollViewDelegate {
     override func viewDidLoad() {
         super.viewDidLoad()
         
-        view.backgroundColor = UIColor(red: 0, green: 0, blue: 0, alpha: 0)
+        setupScrollView()
         
-        // setup scrollview 
-        scrollView = UIScrollView(frame: view.frame)
-        scrollView.maximumZoomScale = 3.0
-        scrollView.minimumZoomScale = 1.0
-        scrollView.zoomScale = 1.0
-        scrollView.delegate = self
         view.addSubview(scrollView)
-        
-        // register taps 
-        let tapOnce = UITapGestureRecognizer.init(target: self, action: Selector("tapOnceAction"))
-        
-        let tapTwice = UITapGestureRecognizer.init(target: self, action: Selector("tapTwiceAction:"))
-        
-        tapOnce.numberOfTapsRequired = 1
-        tapTwice.numberOfTapsRequired = 2
-        tapOnce.requireGestureRecognizerToFail(tapTwice)
-        
-        scrollView.addGestureRecognizer(tapOnce)
-        scrollView.addGestureRecognizer(tapTwice)
     }
 
-    func setupView() {
+    func setupScrollView() {
         
-        view.backgroundColor = UIColor(red: 0, green: 0, blue: 0, alpha: 0)
-        
-        // setup scrollview
         scrollView = UIScrollView(frame: view.frame)
         scrollView.maximumZoomScale = 3.0
         scrollView.minimumZoomScale = 1.0
         scrollView.zoomScale = 1.0
         scrollView.delegate = self
-        view.addSubview(scrollView)
         
-        // register taps
+        registerScrollViewTapGesture()
+    }
+    
+    func registerScrollViewTapGesture() {
+        
         let tapOnce = UITapGestureRecognizer.init(target: self, action: Selector("tapOnceAction"))
-        
         let tapTwice = UITapGestureRecognizer.init(target: self, action: Selector("tapTwiceAction:"))
         
         tapOnce.numberOfTapsRequired = 1
@@ -66,48 +47,61 @@ class ImageViewerController: UIViewController, UIScrollViewDelegate {
         scrollView.addGestureRecognizer(tapTwice)
     }
     
-    func centerPictureFromPoint(point: CGPoint, ofSize size: CGSize, withCornerRadius radius: CGFloat) {
+    func centerPictureFromPoint(point: CGPoint, ofSize size: CGSize) {
         
-        imageView = UIImageView(frame: CGRectMake(point.x, point.y, size.width, size.height))
-        imageView.layer.cornerRadius = radius
-        imageView.clipsToBounds = true
+        setupImageView(point, ofSize: size)
         
-        imageView.image = image
         scrollView.addSubview(imageView)
-
         
         UIView.animateWithDuration(0.3, animations: { () -> Void in
             
-            let imageWidth = self.image.size.width
-            let imageHeight = self.image.size.height
-            let imageRatio = imageWidth / imageHeight
-            let viewRatio = self.view.frame.size.width / self.view.frame.size.height
+            let newSize = self.calculateNewSize()
             
-            var ratio: CGFloat = 0
-            if imageRatio >= viewRatio {
-                
-                ratio = imageWidth / self.view.frame.size.width
-            }
-            else {
-                
-                ratio = imageHeight / self.view.frame.size.height
-            }
+            self.imageView.frame = CGRectMake(self.scrollView.frame.origin.x, self.scrollView.frame.origin.y, newSize.newWidth, newSize.newHeight)
             
-            let newWidth = imageWidth / ratio
-            let newHeight = imageHeight / ratio
-            self.imageView.frame = CGRectMake(self.scrollView.frame.origin.x, self.scrollView.frame.origin.y, newWidth, newHeight)
             self.imageView.center = self.scrollView.center
-            self.imageView.layer.cornerRadius = 0.0
+            
             self.view.backgroundColor = UIColor.blackColor()
+            
             }) { (Bool) -> Void in
                 
-                UIApplication.sharedApplication().setStatusBarHidden(true, withAnimation: UIStatusBarAnimation.None)
+                UIApplication.sharedApplication().statusBarHidden = true
                 
                 self.pan = UIPanGestureRecognizer.init(target: self, action: Selector("moveImage:"))
 
                 self.scrollView.addGestureRecognizer(self.pan)
         }
+    }
+    
+    func calculateNewSize() -> (newWidth: CGFloat, newHeight: CGFloat) {
         
+        let imageWidth = self.image.size.width
+        let imageHeight = self.image.size.height
+        let imageRatio = imageWidth / imageHeight
+        let viewRatio = self.view.frame.size.width / self.view.frame.size.height
+        
+        var ratio: CGFloat = 0
+        if imageRatio >= viewRatio {
+            
+            ratio = imageWidth / self.view.frame.size.width
+        }
+        else {
+            
+            ratio = imageHeight / self.view.frame.size.height
+        }
+        
+        let newWidth = imageWidth / ratio
+        let newHeight = imageHeight / ratio
+        
+        return (newWidth, newHeight)
+    }
+    
+    func setupImageView(point: CGPoint, ofSize size: CGSize) {
+        
+        imageView = UIImageView(frame: CGRectMake(point.x, point.y, size.width, size.height))
+        imageView.clipsToBounds = true
+        
+        imageView.image = image
     }
 
     func tapOnceAction() {
@@ -149,42 +143,27 @@ class ImageViewerController: UIViewController, UIScrollViewDelegate {
     func moveImage(gesture: UIPanGestureRecognizer) {
         
         let deltaY = gesture.translationInView(self.scrollView).y
+        
         let translatedPoint = CGPointMake(self.view.center.x, self.view.center.y + deltaY)
+        
         self.scrollView.center = translatedPoint
         
         if gesture.state == UIGestureRecognizerState.Ended {
             
             let velocityY = gesture.velocityInView(scrollView).y
+            
             let maxDeltaY = (self.view.frame.size.height - self.imageView.frame.size.height) / 2
 
             // swipe down
             if velocityY > 700 || (abs(deltaY) > maxDeltaY && deltaY > 0) {
-                
-                UIApplication.sharedApplication().setStatusBarHidden(false, withAnimation: UIStatusBarAnimation.Fade)
-                
-                UIView.animateWithDuration(0.3, animations: { () -> Void in
-                    
-                    self.imageView.frame = CGRectMake(self.imageView.frame.origin.x, self.view.frame.size.height, self.imageView.frame.size.width, self.imageView.frame.size.height)
-                    
-                    self.view.alpha = 0.0
-                    }, completion: { (Bool) -> Void in
-                        
-                        self.view.removeFromSuperview()
-                })
+
+                swipeToRemove(1)
             }
                 
-                // swipe up
+            // swipe up
             else if velocityY < -700 || (abs(deltaY) > maxDeltaY && deltaY < 0) {
                 
-                UIApplication.sharedApplication().setStatusBarHidden(false, withAnimation: UIStatusBarAnimation.Fade)
-                UIView.animateWithDuration(0.3, animations: { () -> Void in
-                    
-                    self.imageView.frame = CGRectMake(self.imageView.frame.origin.x, -self.imageView.frame.size.height, self.imageView.frame.size.width, self.imageView.frame.size.height)
-                    self.view.alpha = 0.0
-                    }, completion: { (Bool) -> Void in
-                        
-                        self.view.removeFromSuperview()
-                })
+                swipeToRemove((-1))
             }
             else {
                 
@@ -195,20 +174,46 @@ class ImageViewerController: UIViewController, UIScrollViewDelegate {
             }
         }
     }
+    
+    /**
+   
+    Swipe up or down to exit fullscreen mode. direction: -1 is up; 1 is down
+    
+    */
+    
+    func swipeToRemove(direction: CGFloat) {
+        
+        UIApplication.sharedApplication().statusBarHidden = true
+        
+        UIView.animateWithDuration(0.3, animations: { () -> Void in
+            
+            self.imageView.frame = CGRectMake(
+                self.imageView.frame.origin.x,
+                direction * self.imageView.frame.size.height,
+                self.imageView.frame.size.width,
+                self.imageView.frame.size.height)
+            
+            self.view.alpha = 0.0
+            }, completion: { (Bool) -> Void in
+                
+                self.view.removeFromSuperview()
+        })
+
+    }
 
     func centerScrollViewContents() {
         
         let boundSize = self.scrollView.bounds.size
         var contentFrame = self.imageView.frame
         
-        if (contentFrame.size.width < boundSize.width) {
-            
-            contentFrame.origin.x = (boundSize.width - contentFrame.size.width) / 2
-        }
-        else {
-            
-            contentFrame.origin.x = 0.0
-        }
+        setContentFrameX(&contentFrame, boundSize: boundSize)
+        
+        setContentFrameY(&contentFrame, boundSize: boundSize)
+
+        imageView.frame = contentFrame
+    }
+    
+    func setContentFrameY(inout contentFrame: CGRect, boundSize: CGSize) {
         
         if contentFrame.size.height < boundSize.height {
             
@@ -218,8 +223,20 @@ class ImageViewerController: UIViewController, UIScrollViewDelegate {
             
             contentFrame.origin.y = 0.0
         }
+
+    }
+    
+    func setContentFrameX(inout contentFrame: CGRect, boundSize: CGSize) {
         
-        imageView.frame = contentFrame
+        if (contentFrame.size.width < boundSize.width) {
+            
+            contentFrame.origin.x = (boundSize.width - contentFrame.size.width) / 2
+        }
+        else {
+            
+            contentFrame.origin.x = 0.0
+        }
+
     }
 
     func viewForZoomingInScrollView(scrollView: UIScrollView) -> UIView? {
@@ -230,6 +247,12 @@ class ImageViewerController: UIViewController, UIScrollViewDelegate {
     func scrollViewDidZoom(scrollView: UIScrollView) {
         
         centerScrollViewContents()
+        
+        addRemovePanGesture()
+    }
+    
+    func addRemovePanGesture() {
+        
         if scrollView.zoomScale == scrollView.minimumZoomScale {
             
             scrollView.addGestureRecognizer(pan)

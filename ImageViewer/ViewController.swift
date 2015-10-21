@@ -10,7 +10,6 @@ import UIKit
 
 class ViewController: UIViewController {
     
-    var imageViewerController = ImageViewerController()
     var krabiButton = UIButton()
     
     var beachButton = UIButton()
@@ -37,19 +36,19 @@ class ViewController: UIViewController {
     
     func onTapBeach() {
         
-        imageViewerController = ImageViewerController()
+        let imageViewerController = ImageViewerController()
         imageViewerController.image = (beachButton.imageView?.image)!
         view.addSubview(imageViewerController.view)
-        imageViewerController.centerPictureFromPoint(beachButton.frame.origin, ofSize: beachButton.frame.size, withCornerRadius: beachButton.layer.cornerRadius)
+        imageViewerController.centerPictureFromPoint(beachButton.frame.origin, ofSize: beachButton.frame.size)
     }
 
 
     func onTapKrabi() {
 
-        imageViewerController = ImageViewerController()
+        let imageViewerController = ImageViewerController()
         imageViewerController.image = (krabiButton.imageView?.image)!
         view.addSubview(imageViewerController.view)
-        imageViewerController.centerPictureFromPoint(krabiButton.frame.origin, ofSize: krabiButton.frame.size, withCornerRadius: krabiButton.layer.cornerRadius)
+        imageViewerController.centerPictureFromPoint(krabiButton.frame.origin, ofSize: krabiButton.frame.size)
     }
 
 }
